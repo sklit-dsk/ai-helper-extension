@@ -1,4 +1,5 @@
 import API_KEY from "./config.js";
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "sendToChatGPT",
@@ -12,7 +13,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const selectedText = info.selectionText;
     if (selectedText) {
       try {
-        const apiKey = API_KEY; // 🔥 Замени на свой API-ключ
+        const apiKey = API_KEY;
 
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -21,13 +22,21 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             "Authorization": `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: "gpt-3.5-turbo",
+            model: "gpt-4o",
             messages: [
-              { role: "system", content: "Дай только конечный числовой ответ. Не используй формулы, степени или символы вроде ×, ^ или 10^." },
+              {
+                role: "system",
+                content: `Ты отвечаешь на вопросы теста. Давай максимально точные и краткие ответы. 
+                - Отвечай только фактическим ответом, без объяснений.
+                - Если требуется формула, напиши ее строго по правилам математической записи.
+                - Если ответ — число, напиши только число без дополнительных символов.
+                - Если варианты ответа включают термины (например, "Канбан", "макрологистика"), выбери наиболее подходящий термин.`,
+              },
               { role: "user", content: selectedText }
             ],
-            max_tokens: 10,
-            temperature: 0.1
+            max_tokens: 100,  
+            temperature: 0,   
+            top_p: 0          
           }),
         });
 
@@ -37,8 +46,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         }
 
         const data = await response.json();
-        console.log("Ответ от OpenAI API:", data);
-
         const reply = data.choices?.[0]?.message?.content?.trim() || "Ответ не получен";
 
         chrome.scripting.executeScript({
